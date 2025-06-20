@@ -74,10 +74,12 @@ const registerUser = asyncHandler(async (req, res) => {
         fullName,
         avatar: avatar.url,
         coverImage: coverImage?.url || "",
-        email,
+  email: email.toLowerCase().trim(),
         password,
-        username: username.toLowerCase()
+  username: username.toLowerCase().trim()
     })
+
+    console.log("Raw created user:", user);
 
     const createdUser = await User.findById(user._id).select(
         "-password -refreshToken"
@@ -122,19 +124,25 @@ const loginUser = asyncHandler(async(req,res)=>{
 
 
     const {email,username,password} = req.body
+    console.log(email)
     
-    if(!username || !email) {
+    if(!username && !email) {
         throw new ApiError(400, "username or email is required")
     }
 
     const user = await User.findOne({
-        $or: [{username},{email}]
-    })
+  $or: [
+    { username: username?.toLowerCase() },
+    { email: email?.toLowerCase() }
+  ]
+});
+    console.log(user)
     if(!user){
         throw new ApiError(400,"User not exits")
     }
 
     const isPasswordValid =  await  user.isPasswordCorrect(password)
+    console.log(isPasswordValid)
 
     if(!isPasswordValid){
         throw new ApiError(401,"Invalid user credientials")
@@ -144,6 +152,7 @@ const loginUser = asyncHandler(async(req,res)=>{
    const {accessToken,refreshToken}= await generateAccessAndRefreshTokens(user._id)
 
    const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
+   console.log(loggedInUser)
 
    const options = {
     httpOnly : true,
